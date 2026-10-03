@@ -1,0 +1,13 @@
+IT SUPPORT POLICY
+
+Password Reset:
+Employees can reset their passwords through the company self-service portal.
+
+VPN Access:
+Employees working remotely must connect to the company VPN to access internal systems.
+
+IT Support:
+Employees can contact the IT help desk for technical issues.
+
+Account Lockout:
+Employees should contact the IT help desk if their account is locked.
