@@ -1,23 +1,22 @@
-import os
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+from rag.generator import get_llm
 
+llm = get_llm()
 
-load_dotenv()
+prompt = """Answer the question using only the context below.
 
-api_key = os.getenv("GEMINI_API_KEY")
+Question:
+Why do remote employees need to connect to the company VPN?
 
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env")
+Context:
+VPN Access:
+Employees working remotely must connect to the company VPN to access internal systems.
 
+IT Support:
+Employees can contact the IT help desk for technical issues.
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3.6-flash",
-    google_api_key=api_key
-)
+Give the answer directly.
+"""
 
-response = llm.invoke(
-    "Explain RAG in one simple sentence."
-)
+response = llm.invoke(prompt)
 
 print(response.content)

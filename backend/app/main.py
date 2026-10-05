@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import get_connection
+from database import get_connection, create_tables
 
 from rag.loader import load_documents
 from rag.chunker import split_documents
@@ -17,7 +17,7 @@ from rag.router import route_question
 
 
 app = FastAPI(title="Enterprise Knowledge Platform")
-
+create_tables()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -78,6 +78,7 @@ def root():
         "message": "Enterprise Knowledge Platform API is running"
     }
 
+
 @app.get("/conversations")
 def get_conversations():
 
@@ -124,12 +125,14 @@ def get_conversations():
         "conversations": conversations
     }
 
+
 @app.post("/chat")
 def chat(request: ChatRequest):
 
     # Step 1: Route the question
     agent = route_question(request.question)
 
+    # Unknown department
     if agent == "unknown":
 
         answer = "I am not sure which department can answer this question."
@@ -164,7 +167,7 @@ def chat(request: ChatRequest):
 
     agent_documents = results
 
-    # No document found for the selected agent
+    # No documents found
     if not agent_documents:
 
         answer = "I do not have enough information to answer this."
@@ -187,7 +190,7 @@ def chat(request: ChatRequest):
             "sources": []
         }
 
-    # Step 4: Use the best matching document
+    # Step 4: Find the best matching document
     best_document, best_distance = min(
         agent_documents,
         key=lambda item: float(item[1])
@@ -197,30 +200,31 @@ def chat(request: ChatRequest):
 
     confidence = calculate_retrieval_confidence(best_distance)
 
-    # Step 5: Escalate low-confidence questions
-    
-    # Step 6: Build context from retrieved documents
+    # Step 5: Build context from all retrieved chunks
     context = "\n\n".join(
         document.page_content
         for document, distance in agent_documents
     )
+
     print("\n===== RETRIEVED CONTEXT =====")
     print(context)
     print("=============================\n")
-    # Step 7: Generate answer using RAG
+
+    # Step 6: Generate answer using RAG
     prompt = f"""
 You are the {agent.upper()} department knowledge assistant.
 
-Your task is to answer the user's question using the information in the
-CONTEXT below.
+Answer the USER QUESTION using only the CONTEXT provided below.
 
-IMPORTANT RULES:
-1. Use the CONTEXT as the source of truth.
-2. If the CONTEXT directly answers the question, answer it directly.
-3. Do not say that you lack information when the answer is present in the CONTEXT.
-4. Do not add information that is not present in the CONTEXT.
-5. If the answer truly cannot be found in the CONTEXT, respond exactly:
-"I do not have enough information to answer this."
+RULES:
+1. The CONTEXT is the source of truth.
+2. Find the specific statement in the CONTEXT that answers the USER QUESTION.
+3. If the answer is explicitly stated in the CONTEXT, give that answer directly.
+4. Do not require the wording of the question to exactly match the wording in the CONTEXT.
+5. You may rephrase the information from the CONTEXT to form a natural answer.
+6. Do not add facts that are not present in the CONTEXT.
+7. Only say "I do not have enough information to answer this." if the CONTEXT
+   genuinely contains no information that answers the question.
 
 USER QUESTION:
 {request.question}
@@ -229,42 +233,60 @@ CONTEXT:
 {context}
 
 ANSWER:
+
+Formatting rules:
+- Use normal spaces between words.
+- Use clear punctuation.
+- For multiple steps, use a numbered list.
+- Return only the answer, with no extra commentary.
 """
 
     response = llm.invoke(prompt)
 
+    # Debug: inspect the complete Gemini response
+    print("\n===== RAW GEMINI RESPONSE =====")
+    print(response)
+    print("===============================\n")
+
+    # Step 7: Extract the generated answer
     if isinstance(response.content, list):
         answer = "".join(
             block["text"]
             for block in response.content
             if block.get("type") == "text"
-        )
+        ).strip()
     else:
-        answer = response.content
+        answer = response.content.strip()
 
-    # Step 8: Collect sources
+    # Step 8: Determine whether escalation is required
+    if answer.strip() == "I do not have enough information to answer this.":
+        escalated = True
+    else:
+        escalated = False
+
+    # Step 9: Collect sources
     sources = list({
         document.metadata["source"]
         for document, distance in agent_documents
     })
 
-    # Step 9: Save successful conversation to PostgreSQL
+    # Step 10: Save conversation to PostgreSQL
     save_conversation(
         request.question,
         answer,
         agent,
         confidence,
-        False,
+        escalated,
         sources
     )
 
-    # Step 10: Return response
+    # Step 11: Return response
     return {
         "question": request.question,
         "agent": agent,
         "answer": answer,
         "confidence": confidence,
-        "escalated": False,
+        "escalated": escalated,
         "sources": sources
     }
 

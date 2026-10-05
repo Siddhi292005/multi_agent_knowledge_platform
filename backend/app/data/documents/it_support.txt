@@ -11,3 +11,9 @@ Employees can contact the IT help desk for technical issues.
 
 Account Lockout:
 Employees should contact the IT help desk if their account is locked.
+VPN Connection:
+1. Open the company VPN application.
+2. Enter your company credentials.
+3. Select the company VPN server.
+4. Click Connect.
+5. Contact the IT help desk if the connection fails.

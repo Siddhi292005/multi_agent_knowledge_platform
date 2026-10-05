@@ -16,13 +16,18 @@ def route_question(question: str):
         "account locked",
         "account is locked",
         "help desk",
-        "technical"
+        "technical",
+        "laptop",
+        "computer",
+        "hardware"
     ]):
         return "it"
 
     if any(word in question for word in [
         "work from home",
         "office hours",
+        "working hours",
+        "office working hours",
         "code of conduct",
         "confidential",
         "security"
