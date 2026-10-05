@@ -14,7 +14,7 @@ from rag.vector_store import (
 )
 from rag.generator import get_llm
 from rag.router import route_question
-
+from pathlib import Path
 
 app = FastAPI(title="Enterprise Knowledge Platform")
 create_tables()
@@ -28,7 +28,9 @@ app.add_middleware(
 
 
 # Load documents and create domain-specific vector stores
-documents = load_documents("data/documents")
+DOCUMENTS_DIR = Path(__file__).resolve().parent / "data" / "documents"
+
+documents = load_documents(str(DOCUMENTS_DIR))
 chunks = split_documents(documents)
 
 domain_vector_stores = create_domain_vector_stores(chunks)
