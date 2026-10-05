@@ -3,6 +3,11 @@ import psycopg2
 
 
 def get_connection():
+    database_url = os.getenv("DATABASE_URL")
+
+    if database_url:
+        return psycopg2.connect(database_url)
+
     return psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB", "knowledge_platform"),
         user=os.getenv("POSTGRES_USER", "postgres"),
