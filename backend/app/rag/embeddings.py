@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+load_dotenv(ENV_FILE)
 
 def get_embeddings():
     return GoogleGenerativeAIEmbeddings(

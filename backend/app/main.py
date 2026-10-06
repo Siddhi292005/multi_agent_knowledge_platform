@@ -1,22 +1,32 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+load_dotenv(ENV_FILE)
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import get_connection, create_tables
+from app.database import get_connection, create_tables
 
-from rag.loader import load_documents
-from rag.chunker import split_documents
-from rag.vector_store import (
+from app.rag.loader import load_documents
+from app.rag.chunker import split_documents
+from app.rag.vector_store import (
     create_domain_vector_stores,
     retrieve_with_scores,
     calculate_retrieval_confidence
 )
-from rag.generator import get_llm
-from rag.router import route_question
+from app.rag.generator import get_llm
+from app.rag.router import route_question
+
 from pathlib import Path
 
 app = FastAPI(title="Enterprise Knowledge Platform")
+
 create_tables()
 app.add_middleware(
     CORSMiddleware,
